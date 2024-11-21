@@ -1,17 +1,18 @@
 // Load the JSON file
 let votersData = [];
 fetch('export.json')
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error('Failed to load JSON file');
+        return response.json();
+    })
     .then(data => {
-        // Flatten the data and add voter list number if available
-        votersData = data.page_data.flatMap(page => {
-            const words = page.words;
-            let voterListNumber = 1; // Assume list numbers start from 1 on each page
-            return words.map(word => ({
-                ...word,
-                voter_list_number: voterListNumber++ // Assign voter list number incrementally
-            }));
-        });
+        console.log('Raw JSON Data:', data); // Log raw data to verify structure
+        // Assume `number` represents the voter list number
+        votersData = data.page_data.flatMap(page => page.words.map(word => ({
+            ...word,
+            voter_list_number: word.number // Directly use the 'number' field from JSON
+        })));
+        console.log('Processed Voter Data:', votersData); // Log processed data
     })
     .catch(error => console.error('Error loading JSON:', error));
 
@@ -21,19 +22,22 @@ function searchVoter() {
     const lastName = document.getElementById('lastName').value.toLowerCase();
     const voterNumber = document.getElementById('voterNumber').value;
 
+    console.log('Search Inputs:', { firstName, lastName, voterNumber });
+
+    // Filter results based on input
     const results = votersData.filter(word => {
-        const text = word.text.toLowerCase();
         return (
-            (!firstName || text.includes(firstName)) &&
-            (!lastName || text.includes(lastName)) &&
-            (!voterNumber || text.includes(voterNumber))
+            (!firstName || word.text.toLowerCase().includes(firstName)) &&
+            (!lastName || word.text.toLowerCase().includes(lastName)) &&
+            (!voterNumber || word.text.includes(voterNumber))
         );
     });
 
+    console.log('Filtered Results:', results); // Log filtered results
     displayResults(results);
 }
 
-// Display search results with details
+// Display search results with voter list number
 function displayResults(results) {
     const resultsDiv = document.getElementById('results');
     resultsDiv.innerHTML = '';
